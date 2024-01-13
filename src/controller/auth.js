@@ -1,6 +1,6 @@
 const User = require("../model/user")
 const bcrypt = require("bcrypt")
-
+const jwt = require("jsonwebtoken")
 
 exports.signup = (req,res,next)=>{
     User.findOne({
@@ -37,7 +37,11 @@ exports.login = (req,res,next)=>{
         }else{
             bcrypt.compare(req.body.password, user.password).then(isMatch=>{
                 if(isMatch){
-                    res.status(200).json({message : "Login Successfull"})
+                    const token = jwt.sign({
+                        name : user.name,
+                        id : user.id,
+                    }, "cat", {expiresIn : '1h'})
+                    res.status(200).json({message : "Login Successfull",toekn: token})
                 }else{
                     res.status(404).json({message : "Invalid Password"})
                 }
