@@ -14,7 +14,7 @@ exports.createCategory = (req,res,next)=>{
         name  : req.body.name,
         description : req.body.description,
     }).then(result=>{
-        res.status(201).json({message : "User Created Successfully"})
+        res.status(201).json({message : "Category Created Successfully"})
     })
 }
 
