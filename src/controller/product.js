@@ -1,3 +1,4 @@
+const { validationResult } = require("express-validator")
 const product = require("../model/product")
 
 exports.getProducts = (req,res,next)=>{
@@ -10,10 +11,20 @@ exports.getProducts = (req,res,next)=>{
 }
 
 exports.createProduct = (req,res,next)=>{
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const extractedErrors = errors.array();
+        let responseErrors = extractedErrors.map(err => ({ [err.param]: err.msg }));
+        return res.status(400).json({ errors: responseErrors });
+    }
+
+   
     product.create({
         name  : req.body.name,
         description : req.body.description,
-        cost : req.body.cost
+        cost : req.body.cost,
+        categoryId: req.body.categoryId 
     }).then(result=>{
         res.status(201).json({message : "Product Created Successfully"})
     })
