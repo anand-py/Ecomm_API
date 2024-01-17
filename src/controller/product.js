@@ -1,12 +1,33 @@
 const { validationResult } = require("express-validator")
-const product = require("../model/product")
+const Product = require("../model/product")
+const { Op } = require('sequelize')
 
 exports.getProducts = (req,res,next)=>{
-    product.findAll().then((products)=>{
-        res.status(200).json({
-           products ,
+    let totalItems;
+    let page = req.query.page ? parseInt(req.query.page) : 1;
+    let limit = 5;
+
+        let minCost = req.query.minCost || Number.MIN_VALUE;
+        let maxCost = req.query.maxCost || Number.MAX_VALUE;
+        Product.findAll({
+            where :{ 
+                cost : {
+                    [Op.gte] : minCost,
+                    [Op.lte] : maxCost,
+            }
+        },
+            limit : limit,
+        offset : (page-1) * limit
+        }).then((products)=>{
+            res.status(200).json({
+               products ,
+            })
         })
+   
+    Product.count().then((count)=>{
+        totalItems = count
     })
+  
     
 }
 
@@ -20,7 +41,7 @@ exports.createProduct = (req,res,next)=>{
     }
 
    
-    product.create({
+    Product.create({
         name  : req.body.name,
         description : req.body.description,
         cost : req.body.cost,
@@ -31,7 +52,7 @@ exports.createProduct = (req,res,next)=>{
 }
 
 exports.getProduct = (req,res,next)=>{
-    product.findOne({
+    Product.findOne({
         where : {
             id : req.params.id,
         }
@@ -49,7 +70,7 @@ exports.getProduct = (req,res,next)=>{
 };
 
 exports.deleteProduct = (req,res,next)=>{
-    product.findOne({
+    Product.findOne({
         where : {
             id : req.params.id,
         }
@@ -69,7 +90,7 @@ exports.deleteProduct = (req,res,next)=>{
 }
 
 exports.updateProduct = (req,res,next)=>{
-    product.findOne({
+    Product.findOne({
         where : {
             id : req.params.id,
         }
