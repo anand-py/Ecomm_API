@@ -4,8 +4,7 @@ const { validationResult } = require("express-validator")
 const jwt = require("jsonwebtoken")
 const Role = require("../model/role");
 const { Op } = require("sequelize");
-
-
+const Cart = require("../model/cart")
 
 
 
@@ -16,43 +15,52 @@ exports.signup = (req, res, next) => {
         return res.status(400).json({ errors: extractedErrors });
     }
 
-    // Search for a user with the provided email
-    User.findOne({ where: { email: req.body.email } }).then((user) => {
-        if (user) {
-            const error = new Error("Email already Exists");
-            error.statusCode = 403
-            next(error)
-            } else {
-            bcrypt.hash(req.body.password, 12).then(hashedPassword => {
-
-                    Role.findAll({
-                        where: {
-                            name: {
-                                [Op.in]: req.body.roles
-                            }
-                        }
-                    }).then((roles) => {
-                        const user = new User();
-                        User.create({
-
-                                name: req.body.name,
-                                email: req.body.email,
-                                password: hashedPassword,
-                            }).then((user) => {
-                                user.setRoles(roles);
-                                user.save().then((result)=>{
-                                    return res.status(201).json({ message: "SignUp Successful" })
-                                })
-                            })
-                       
-                });
+    let newUser;
+    User.findOne({ where: { email: req.body.email } })
+        .then(user => {
+            if (user) {
+                const error = new Error("Email already Exists");
+                error.statusCode = 403;
+                throw error;
+            }
+            return bcrypt.hash(req.body.password, 12);
+        })
+        .then(hashedPassword => {
+            return User.create({
+                name: req.body.name,
+                email: req.body.email,
+                password: hashedPassword,
             });
-        }
-    }).catch((error) => {
-        return res.status(500).json({ message: "Error accessing the database", error: error });
-    });
+        })
+        .then(user => {
+            newUser = user; // Save the user reference for later use
+            return Cart.create();
+        })
+        .then(cart => {
+            return newUser.setCart(cart);
+        })
+        .then(() => {
+            return Role.findAll({
+                where: {
+                    name: {
+                        [Op.in]: req.body.roles
+                    }
+                }
+            });
+        })
+        .then(roles => {
+            return newUser.setRoles(roles);
+        })
+        .then(() => {
+            res.status(201).json({ message: "SignUp Successful" });
+        })
+        .catch(error => {
+            if (!error.statusCode) {
+                error.statusCode = 500;
+            }
+            next(error);
+        });
 };
-
 
 
 exports.login = (req, res, next) => {
